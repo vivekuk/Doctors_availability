@@ -1,0 +1,58 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+import time
+import pandas as pd
+
+"""Create a new instance of the Chrome driver"""
+driver = webdriver.Chrome()
+
+"""Open the website"""
+driver.get("https://www.apollohospitals.com/book-doctor-appointment/")
+
+"""Maximize the browser window (make it full screen)"""
+driver.maximize_window()
+
+"""Creating a dataframe to store the data"""
+columns = ["Doctor Name", "Speciality", "Education", "Registration No.", "Experience", "Location"]
+
+"""doctors_data = pd.DataFrame(columns = columns)"""
+doctors_data_list = list()
+
+"""Pagination right arrow element"""
+element = driver.find_element("xpath", "//*[@class='fa fa-angle-double-right  p-2 px-2']")
+page_no,last_page = 0, ""
+"""Loop Iterates until the last page"""
+while driver.find_element("xpath", '//*[@class="current"]/b').text != str(107):
+    time.sleep(3)
+    page_no = driver.find_element("xpath", '//*[@class="current"]/b').text
+    print(driver.find_element("xpath", '//*[@class="current"]/b').text)
+    """Find Doctor details elements on the page using its respective xpaths"""
+    doctor_cards = driver.find_elements("xpath", "//*[@class='flex-grow-1 ms-lg-4 ms-2']")
+    for doctor_card in doctor_cards:
+        if page_no != last_page:
+            speciality = doctor_card.find_element('xpath', ".//a[@class='docrcardtitle']").get_attribute('href').split("/")[4].replace("-"," ")
+            doctor_name = doctor_card.find_element('xpath', ".//a[@class='docrcardtitle']/h2").text
+            doctor_education = doctor_card.find_element("xpath", ".//*[@class='docrcardtitle']/following-sibling::p").text
+            registration_no = doctor_card.find_element("xpath", ".//*[@class='me-3']//*[@class='mb-1 fs13 ft-wight-1']").text
+            experience = doctor_card.find_element("xpath", ".//*[@class='d-flex flex-row mt-3 mb-2']/p").text
+            location = doctor_card.find_element("xpath", ".//*[@class=' d-flex flex-row mb-2']/p").text
+            doctors_data_list.append([doctor_name, speciality, doctor_education, registration_no, experience, location])
+
+    """Navigating to net page"""
+    try:
+        driver.execute_script("arguments[0].click();", element)
+        last_page = page_no
+    except:
+        print("unable to click the element")
+
+    try:
+        driver.find_element("xpath", "//*[@class='fa fa-angle-double-right  p-2 px-2']").click()
+        last_page = page_no
+    except:
+        print("tried another way to click, but unable to click the button")
+
+"""Converting lists of lists data to dataframe"""
+doctors_data = pd.DataFrame(doctors_data_list, columns=columns)
+
+"""Loading data to excel"""
+doctors_data.to_excel("doctors_data.xlsx", index=False)
